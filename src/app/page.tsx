@@ -6,6 +6,7 @@ import Hero from "../components/Hero";
 import ProductGrid from "../components/ProductGrid";
 import Footer from "../components/Footer";
 import CartDrawer from "../components/CartDrawer";
+import StoreSpinner from "../components/StoreSpinner";
 import { fruits } from "../data/fruits";
 import { vegetables } from "../data/vegetables";
 import { useCartStore, Product } from "../store/cartStore";
@@ -17,6 +18,11 @@ export default function Home() {
   const [cartOpen, setCartOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<'fruit' | 'vegetable' | 'all'>("fruit");
   const [search, setSearch] = React.useState("");
+  const [loading, setLoading] = React.useState(true);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1200);
+    return () => clearTimeout(timer);
+  }, []);
   const cartCount = useCartStore((state) => state.cart.reduce((sum, item) => sum + item.quantity, 0));
   const addToCart = useCartStore((state) => state.addToCart);
   const handleCartIconClick = () => {
@@ -37,7 +43,6 @@ export default function Home() {
     }
   };
 
-
   // Filter logic: if search is non-empty, show all matching fruits and vegetables regardless of tab
   let filteredFruits = fruits;
   let filteredVegetables = vegetables;
@@ -53,6 +58,10 @@ export default function Home() {
       filteredFruits = [];
     }
     // If 'all', show both
+  }
+
+  if (loading) {
+    return <StoreSpinner />;
   }
 
   return (
