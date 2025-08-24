@@ -1,37 +1,35 @@
-
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
-import { useIsMobile } from "../hooks/useIsMobile";
-import { fruits } from "../data/fruits";
-import { vegetables } from "../data/vegetables";
-import { useCartStore, Product } from "../store/cartStore";
-import CartDrawer from "../components/CartDrawer";
 import Header from "../components/Header";
 import Hero from "../components/Hero";
 import ProductGrid from "../components/ProductGrid";
 import Footer from "../components/Footer";
+import CartDrawer from "../components/CartDrawer";
+import { fruits } from "../data/fruits";
+import { vegetables } from "../data/vegetables";
+import { useCartStore, Product } from "../store/cartStore";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 export default function Home() {
-  const addToCart = useCartStore((state) => state.addToCart);
-  const cart = useCartStore((state) => state.cart);
-  const [cartOpen, setCartOpen] = useState(false);
-  const [hasHydrated, setHasHydrated] = useState(false);
-  const isMobile = useIsMobile();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'fruit' | 'vegetable' | 'all'>('fruit');
-  const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    setHasHydrated(true);
-  }, []);
-  const cartCount = hasHydrated ? cart.reduce((sum, item) => sum + item.quantity, 0) : 0;
-  const handleAddToCart = (product: Product) => {
-    addToCart(product);
-    // Do not open cart drawer on mobile, just update cart
+  const isMobile = useIsMobile();
+  const [cartOpen, setCartOpen] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<'fruit' | 'vegetable' | 'all'>("fruit");
+  const [search, setSearch] = React.useState("");
+  const cartCount = useCartStore((state) => state.cart.reduce((sum, item) => sum + item.quantity, 0));
+  const addToCart = useCartStore((state) => state.addToCart);
+  const handleCartIconClick = () => {
+    if (isMobile) {
+      setCartOpen(true);
+    } else {
+      router.push("/cart");
+    }
   };
 
-  const handleCartIconClick = () => {
+  // Buy Now handler: add to cart, then open cart drawer (mobile) or redirect to cart (desktop)
+  const handleBuyNow = (product: Product) => {
+    addToCart(product);
     if (isMobile) {
       setCartOpen(true);
     } else {
@@ -63,15 +61,14 @@ export default function Home() {
         />
       )}
 
-
-	  <Hero />
-
+      <Hero />
 
       <ProductGrid
         fruits={filteredFruits}
         vegetables={filteredVegetables}
         activeTab={activeTab}
-        onAddToCart={handleAddToCart}
+        onAddToCart={addToCart}
+        onBuyNow={handleBuyNow}
         isMobile={isMobile}
       />
       <Footer />

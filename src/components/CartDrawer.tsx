@@ -49,7 +49,7 @@ export default function CartDrawer({ open, onClose }: Props) {
           if (data && data.display_name) {
             setManualAddress(data.display_name);
           }
-        } catch (err) {
+        } catch {
           setManualAddress(`${latitude}, ${longitude}`);
         }
       },
