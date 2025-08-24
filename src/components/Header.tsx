@@ -1,5 +1,4 @@
 "use client";
-// ...existing code...
 import React from "react";
 import { FaFilter } from "react-icons/fa";
 import Image from "next/image";
