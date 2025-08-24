@@ -37,9 +37,23 @@ export default function Home() {
     }
   };
 
-  // Filter products by search
-  const filteredFruits = fruits.filter(fruit => fruit.name.toLowerCase().includes(search.toLowerCase()));
-  const filteredVegetables = vegetables.filter(veg => veg.name.toLowerCase().includes(search.toLowerCase()));
+
+  // Filter logic: if search is non-empty, show all matching fruits and vegetables regardless of tab
+  let filteredFruits = fruits;
+  let filteredVegetables = vegetables;
+  if (search.trim() !== "") {
+    const keyword = search.toLowerCase();
+    filteredFruits = fruits.filter(fruit => fruit.name.toLowerCase().includes(keyword));
+    filteredVegetables = vegetables.filter(veg => veg.name.toLowerCase().includes(keyword));
+  } else {
+    // If no search, filter by tab
+    if (activeTab === "fruit") {
+      filteredVegetables = [];
+    } else if (activeTab === "vegetable") {
+      filteredFruits = [];
+    }
+    // If 'all', show both
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-lime-100 via-green-50 to-yellow-100 flex flex-col items-center px-2 pb-8">
@@ -66,7 +80,7 @@ export default function Home() {
       <ProductGrid
         fruits={filteredFruits}
         vegetables={filteredVegetables}
-        activeTab={activeTab}
+        activeTab={search.trim() !== "" ? "all" : activeTab}
         onAddToCart={addToCart}
         onBuyNow={handleBuyNow}
         isMobile={isMobile}

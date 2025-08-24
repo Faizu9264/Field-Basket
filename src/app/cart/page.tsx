@@ -64,12 +64,6 @@ export default function CartPage() {
 			);
 		};
 
-	const handleManualAddress = (e: React.ChangeEvent<HTMLInputElement>) => {
-		setManualAddress(e.target.value);
-		setDeliveryAllowed(true); // Always allow if manually entered
-		setLocationError("");
-	};
-
 	const handleRemove = (item: CartItemType) => {
 		if (item.quantity <= 1) {
 			removeFromCart(item.product.id);
