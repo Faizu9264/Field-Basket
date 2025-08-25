@@ -57,9 +57,37 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
           const data = await response.json();
           if (data && data.display_name) {
             setManualAddress(data.display_name);
+          } else {
+            setManualAddress("");
+            toast.error("Location found, but address unavailable. Please enter your address manually.", {
+              duration: 4000,
+              style: {
+                borderRadius: '12px',
+                background: '#fff',
+                color: '#b91c1c',
+                border: '1px solid #fca5a5',
+                fontWeight: 'bold',
+                fontSize: '1rem',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+              },
+              icon: '📍',
+            });
           }
         } catch {
-          setManualAddress(`${latitude}, ${longitude}`);
+          setManualAddress("");
+          toast.error("Location found, but address unavailable. Please enter your address manually.", {
+            duration: 4000,
+            style: {
+              borderRadius: '12px',
+              background: '#fff',
+              color: '#b91c1c',
+              border: '1px solid #fca5a5',
+              fontWeight: 'bold',
+              fontSize: '1rem',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+            },
+            icon: '📍',
+          });
         }
       },
       () => {
@@ -212,7 +240,7 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                 <label className="block font-semibold mb-1 text-green-900">House Number <span className="text-red-500">*</span></label>
                 <input
                   type="text"
-                  className="w-full border rounded px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className="w-full border rounded px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-green-400 bg-white text-gray-900 placeholder-gray-700"
                   placeholder="Enter your house or flat number"
                   value={houseNumber}
                   onChange={e => setHouseNumber(e.target.value)}
@@ -243,7 +271,7 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                       <input
                         {...getInputProps({
                           placeholder: "Enter delivery address or landmark",
-                          className: "w-full border rounded px-3 py-2 mb-1",
+                          className: "w-full border rounded px-3 py-2 mb-1 bg-white text-gray-900 placeholder-gray-700",
                         })}
                       />
                       {suggestions.length > 0 && (
@@ -267,7 +295,7 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                   )}
                 </PlacesAutocomplete>
                 {userLocation && !locationError && (
-                  <div className={deliveryAllowed ? "text-green-700 text-sm mt-1 font-bold" : "text-red-600 text-sm mt-1 font-bold"}>
+                  <div className={deliveryAllowed ? "text-green-700 text-sm mt-1 font-bold" : "text-red-600 text-sm mt-1 font-bold"} style={{background: '#fff', borderRadius: 8, padding: '4px 8px'}}>
                     {deliveryAllowed ? (
                       <>
                         Delivery available to this location!
@@ -286,7 +314,7 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                   </div>
                 )}
                 {locationError && (
-                  <div className="text-red-600 text-sm mt-1 font-bold">{locationError}</div>
+                  <div className="text-red-600 text-sm mt-1 font-bold" style={{background: '#fff', borderRadius: 8, padding: '4px 8px'}}>{locationError}</div>
                 )}
               </div>
             )}
