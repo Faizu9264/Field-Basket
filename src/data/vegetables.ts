@@ -12,7 +12,7 @@ export const vegetables: Vegetable[] = [
     id: "carrot",
     name: "Carrot",
     image: "/vegetables/carrot.jpg",
-    price: 50,
+  price: 6,
     unit: "kg",
     description: "Crunchy and sweet carrots."
   },
@@ -20,7 +20,7 @@ export const vegetables: Vegetable[] = [
     id: "tomato",
     name: "Tomato",
     image: "/vegetables/tomato.jpg",
-    price: 40,
+  price: 5,
     unit: "kg",
     description: "Fresh red tomatoes."
   },
@@ -28,7 +28,7 @@ export const vegetables: Vegetable[] = [
     id: "potato",
     name: "Potato",
     image: "/vegetables/potato.jpg",
-    price: 30,
+  price: 4,
     unit: "kg",
     description: "Versatile and starchy potatoes."
   },
@@ -36,7 +36,7 @@ export const vegetables: Vegetable[] = [
     id: "cucumber",
     name: "Cucumber",
     image: "/vegetables/cucumber.jpg",
-    price: 35,
+  price: 6,
     unit: "kg",
     description: "Cool and refreshing cucumbers."
   },
@@ -44,7 +44,7 @@ export const vegetables: Vegetable[] = [
     id: "capsicum",
     name: "Capsicum",
     image: "/vegetables/capsicum.jpg",
-    price: 70,
+  price: 10,
     unit: "kg",
     description: "Colorful and crisp capsicums."
   }

@@ -13,6 +13,15 @@
   scrollbar-width: thin;
   scrollbar-color: #b5e48c #e0e0e0;
 }
+
+@font-face {
+  font-family: 'UAEDirham';
+  src: url('/fonts/font.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @import "tailwindcss";
 
 :root {

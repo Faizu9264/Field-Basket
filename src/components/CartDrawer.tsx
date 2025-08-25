@@ -338,7 +338,9 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
               ))}
               <div className="flex justify-between font-bold text-lg mt-4 border-t pt-4">
                 <span>Total:</span>
-                <span className="text-green-700">د.إ {total}</span>
+                <span className="text-green-700">
+                  <span style={{ fontFamily: 'UAEDirham', fontSize: '1.1em', verticalAlign: 'middle' }}>&#x00EA;</span> {total}
+                </span>
               </div>
               {isMobile && (
                 <>

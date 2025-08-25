@@ -13,7 +13,7 @@ export const fruits: Fruit[] = [
     id: "apple",
     name: "Apple",
     image: "/fruits/apple.jpg",
-    price: 100,
+  price: 12,
     unit: "kg",
     description: "Fresh and juicy apples."
   },
@@ -21,7 +21,7 @@ export const fruits: Fruit[] = [
     id: "banana",
     name: "Banana",
     image: "/fruits/banana.jpg",
-    price: 60,
+  price: 8,
     unit: "dozen",
     description: "Sweet ripe bananas."
   },
@@ -29,7 +29,7 @@ export const fruits: Fruit[] = [
     id: "orange",
     name: "Orange",
     image: "/fruits/orange.jpg",
-    price: 80,
+  price: 10,
     unit: "kg",
     description: "Citrus oranges full of vitamin C."
   },
@@ -37,7 +37,7 @@ export const fruits: Fruit[] = [
     id: "grapes",
     name: "Grapes",
     image: "/fruits/grapes.jpg",
-    price: 120,
+  price: 15,
     unit: "kg",
     description: "Sweet and seedless grapes."
   },
@@ -45,7 +45,7 @@ export const fruits: Fruit[] = [
     id: "mango",
     name: "Mango",
     image: "/fruits/mango.jpg",
-    price: 150,
+  price: 18,
     unit: "kg",
     description: "King of fruits, juicy mangoes."
   },
@@ -53,7 +53,7 @@ export const fruits: Fruit[] = [
     id: "watermelon",
     name: "Watermelon",
     image: "/fruits/watermelon.jpg",
-    price: 40,
+  price: 7,
     unit: "kg",
     description: "Refreshing and hydrating watermelon."
   },
@@ -61,7 +61,7 @@ export const fruits: Fruit[] = [
     id: "pineapple",
     name: "Pineapple",
     image: "/fruits/pineapple.jpg",
-    price: 90,
+  price: 9,
     unit: "piece",
     description: "Tropical and tangy pineapple."
   }
