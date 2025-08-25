@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import Hero from "../components/Hero";
 import ProductGrid from "../components/ProductGrid";
 import Footer from "../components/Footer";
+import InstallPWAButton from "../components/InstallPWAButton";
 import CartDrawer from "../components/CartDrawer";
 import StoreSpinner from "../components/StoreSpinner";
 import { fruits } from "../data/fruits";
@@ -117,6 +118,7 @@ export default function Home() {
         isMobile={isMobile}
       />
       <Footer />
+      <InstallPWAButton />
     </div>
   );
 }
