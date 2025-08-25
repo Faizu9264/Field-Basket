@@ -89,7 +89,7 @@ export default function Home() {
       {/* Cart Drawer Modal (mobile only) */}
       {isMobile && (
         <CartDrawer
-          open={cartOpen}
+          isOpen={cartOpen}
           onClose={() => setCartOpen(false)}
         />
       )}

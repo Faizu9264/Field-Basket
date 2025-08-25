@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
 import PlacesAutocomplete from "react-places-autocomplete";
 import { useCartStore, CartItem as CartItemType } from "../../store/cartStore";
 import CartItem from "../../components/CartItem";
@@ -30,6 +31,7 @@ export default function CartPage() {
 	const isMobile = useIsMobile();
 	const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
 	const [manualAddress, setManualAddress] = useState("");
+	const [houseNumber, setHouseNumber] = useState("");
 	const [locationError, setLocationError] = useState("");
 	const [deliveryAllowed, setDeliveryAllowed] = useState(true);
 	const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
@@ -75,10 +77,26 @@ export default function CartPage() {
 	const handleCheckout = () => {
 		if (cart.length === 0) return;
 		if (!deliveryAllowed) return;
+		if (!houseNumber.trim() || !manualAddress.trim()) {
+			toast.error("Please enter both your house number and delivery location.", {
+				duration: 3500,
+				style: {
+					borderRadius: '12px',
+					background: '#fff',
+					color: '#b91c1c',
+					border: '1px solid #fca5a5',
+					fontWeight: 'bold',
+					fontSize: '1rem',
+					boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+				},
+				icon: '⚠️',
+			});
+			return;
+		}
 		const orderLines = cart
 			.map(
 				(item) =>
-					`- ${item.product.name} (${item.quantity}${item.product.unit}) - ₹${
+					`- ${item.product.name} (${item.quantity}${item.product.unit}) - د.إ${
 						item.product.price * item.quantity
 					}`
 			)
@@ -91,23 +109,40 @@ export default function CartPage() {
 		} else {
 			locationMsg = `%0AAddress: Shop Pickup`;
 		}
-		const message = `Hello, I want to order:%0A${orderLines}%0ATotal: ₹${total}${locationMsg}`;
+				const message =
+					`🛒 *New Order from Field Basket*%0A%0A` +
+					`*Order Details:*%0A${orderLines}%0A` +
+					`-----------------------------%0A` +
+					`*Total:* د.إ${total}%0A` +
+					`%0A*House/Flat No.:* ${houseNumber}%0A` +
+					`%0A*Delivery Location:* ${manualAddress || "-"}%0A` +
+					`%0AThank you!`;
 		const phone = "+916282821603";
 		const waLink = `https://wa.me/${phone}?text=${message}`;
 		window.open(waLink, "_blank");
 	};
 
-	return (
-		<div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-lime-100 via-green-50 to-yellow-100 px-2 pb-8">
-			{/* Minimal header for cart */}
-					{/* No top-level cart header, only inside cart section */}
-			<div className={
-				isMobile
-					? "w-full max-w-xl bg-white/95 rounded-3xl shadow-2xl p-8 mt-12 text-gray-900 flex flex-col relative"
-					: "w-full max-w-4xl bg-white/95 rounded-3xl shadow-2xl p-8 mt-12 text-gray-900 flex flex-row gap-8 relative"
-			} style={{ minHeight: 400 }}>
+			return (
+				<div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-lime-100 via-green-50 to-yellow-100 px-2 pb-8">
+					<Toaster position="top-center" />
+					{/* Minimal header for cart */}
+				{/* No top-level cart header, only inside cart section */}
+				<div className={
+					isMobile
+						? "w-full max-w-xl bg-white/95 rounded-3xl shadow-2xl p-8 mt-12 text-gray-900 flex flex-col relative"
+						: "w-full max-w-4xl bg-white/95 rounded-3xl shadow-2xl p-8 mt-12 text-gray-900 flex flex-row gap-8 relative"
+				} style={{ minHeight: 400 }}>
 				{/* Left: Delivery Location */}
 				<div className={isMobile ? "mb-6" : "w-1/2 mb-0"}>
+					<label className="block font-semibold mb-1 text-green-900">House Number <span className="text-red-500">*</span></label>
+					<input
+						type="text"
+						className="w-full border rounded px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+						placeholder="Enter your house or flat number"
+						value={houseNumber}
+						onChange={e => setHouseNumber(e.target.value)}
+						required
+					/>
 					<div className="flex items-center gap-2 mb-2">
 						<span className="font-semibold">Delivery Location:</span>
 						<button
@@ -231,7 +266,7 @@ export default function CartPage() {
 								style={
 									isMobile
 										? { maxHeight: 'calc(100vh - 260px)' }
-										: { maxHeight: 200 }
+										: { maxHeight: 300 }
 								}
 							>
 								{cart.map((item) => (
@@ -247,7 +282,7 @@ export default function CartPage() {
 								))}
 								<div className="flex justify-between font-bold text-lg mt-4 border-t pt-4">
 									<span>Total:</span>
-									<span className="text-green-700">₹{total}</span>
+									<span className="text-green-700">د.إ {total}</span>
 								</div>
 							</div>
 						</>
@@ -259,7 +294,7 @@ export default function CartPage() {
 								<button
 									className="w-full bg-gradient-to-r from-green-500 to-lime-400 hover:from-green-600 hover:to-lime-500 text-white py-3 rounded-xl font-bold text-lg shadow-lg transition"
 									onClick={handleCheckout}
-									disabled={!deliveryAllowed}
+									disabled={!deliveryAllowed || !houseNumber.trim()}
 								>
 									Place Order
 								</button>

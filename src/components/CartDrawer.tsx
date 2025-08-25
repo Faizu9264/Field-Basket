@@ -1,9 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
-import CartItem from "../components/CartItem";
-import PlacesAutocomplete from "react-places-autocomplete";
-// Shop location (updated)
+
 const SHOP_LOCATION = { lat: 10.953891716268787, lng: 76.3179751502432 };
 
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -16,20 +13,32 @@ function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon
     (1 - Math.cos(dLon))/2;
   return R * 2 * Math.asin(Math.sqrt(a));
 }
+
+import React, { useState, useEffect } from "react";
+import toast, { Toaster } from "react-hot-toast";
 import { useCartStore } from "../store/cartStore";
+import CartItem from "../components/CartItem";
+import PlacesAutocomplete from "react-places-autocomplete";
 import { useIsMobile } from "../hooks/useIsMobile";
-import { useEffect } from "react";
 
 type Props = {
-  open: boolean;
+  isOpen: boolean;
   onClose: () => void;
 };
 
-export default function CartDrawer({ open, onClose }: Props) {
+const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   const [manualAddress, setManualAddress] = useState("");
+  const [houseNumber, setHouseNumber] = useState("");
   const [locationError, setLocationError] = useState("");
   const [deliveryAllowed, setDeliveryAllowed] = useState(true);
+  const cart = useCartStore((state) => state.cart);
+  const addToCart = useCartStore((state) => state.addToCart);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const removeFromCart = useCartStore((state) => state.removeFromCart);
+  const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const isMobile = useIsMobile();
+
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
       setLocationError("Geolocation is not supported by your browser.");
@@ -58,6 +67,7 @@ export default function CartDrawer({ open, onClose }: Props) {
       }
     );
   };
+
   // When user selects a location from autocomplete
   const handleSelectAddress = async (address: string) => {
     setManualAddress(address);
@@ -82,15 +92,25 @@ export default function CartDrawer({ open, onClose }: Props) {
       setDeliveryAllowed(false);
     }
   };
-  const cart = useCartStore((state) => state.cart);
-  const addToCart = useCartStore((state) => state.addToCart);
-  const updateQuantity = useCartStore((state) => state.updateQuantity);
-  const removeFromCart = useCartStore((state) => state.removeFromCart);
-  const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const isMobile = useIsMobile();
 
   const handlePlaceOrder = () => {
     if (cart.length === 0) return;
+    if (!houseNumber.trim() || !manualAddress.trim()) {
+      toast.error("Please enter both your house number and delivery location.", {
+        duration: 3500,
+        style: {
+          borderRadius: '12px',
+          background: '#fff',
+          color: '#b91c1c',
+          border: '1px solid #fca5a5',
+          fontWeight: 'bold',
+          fontSize: '1rem',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+        },
+        icon: '⚠️',
+      });
+      return;
+    }
     const orderLines = cart
       .map(
         (item) =>
@@ -99,7 +119,14 @@ export default function CartDrawer({ open, onClose }: Props) {
           }`
       )
       .join("%0A");
-  const message = `Hello, I want to order:%0A${orderLines}%0ATotal: د.إ${total}`;
+    const message =
+      `🛒 *New Order from Field Basket*%0A%0A` +
+      `*Order Details:*%0A${orderLines}%0A` +
+      `-----------------------------%0A` +
+      `*Total:* د.إ${total}%0A` +
+      `%0A*House/Flat No.:* ${houseNumber}%0A` +
+      `%0A*Delivery Location:* ${manualAddress || "-"}%0A` +
+      `%0AThank you!`;
     const phone = "+916282821603"; // Replace with your WhatsApp number if needed
     const waLink = `https://wa.me/${phone}?text=${message}`;
     window.open(waLink, "_blank");
@@ -107,7 +134,7 @@ export default function CartDrawer({ open, onClose }: Props) {
 
   // Prevent background scroll when drawer is open
   useEffect(() => {
-    if (open) {
+    if (isOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -115,9 +142,9 @@ export default function CartDrawer({ open, onClose }: Props) {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [open]);
+  }, [isOpen]);
 
-  if (!open) return null;
+  if (!isOpen) return null;
 
   return (
     <>
@@ -148,6 +175,15 @@ export default function CartDrawer({ open, onClose }: Props) {
             {/* Delivery Location Selection (Mobile Only) */}
             {isMobile && (
               <div className="mb-4">
+                <label className="block font-semibold mb-1 text-green-900">House Number <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  className="w-full border rounded px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+                  placeholder="Enter your house or flat number"
+                  value={houseNumber}
+                  onChange={e => setHouseNumber(e.target.value)}
+                  required
+                />
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-semibold">Delivery Location:</span>
                   <button
@@ -229,13 +265,16 @@ export default function CartDrawer({ open, onClose }: Props) {
                 <span className="text-green-700">د.إ {total}</span>
               </div>
               {isMobile && (
-                <button
-                  className="w-full bg-gradient-to-r from-green-500 to-lime-400 hover:from-green-600 hover:to-lime-500 text-white py-3 rounded-xl mt-4 font-bold text-lg shadow-lg transition"
-                  onClick={handlePlaceOrder}
-                  disabled={!deliveryAllowed}
-                >
-                  Place Order
-                </button>
+                <>
+                  <Toaster position="top-center" />
+                  <button
+                    className="w-full bg-gradient-to-r from-green-500 to-lime-400 hover:from-green-600 hover:to-lime-500 text-white py-3 rounded-xl mt-4 font-bold text-lg shadow-lg transition"
+                    onClick={handlePlaceOrder}
+                    disabled={!deliveryAllowed}
+                  >
+                    Place Order
+                  </button>
+                </>
               )}
             </div>
           </>
@@ -243,4 +282,6 @@ export default function CartDrawer({ open, onClose }: Props) {
       </div>
     </>
   );
-}
+};
+
+export default CartDrawer;
