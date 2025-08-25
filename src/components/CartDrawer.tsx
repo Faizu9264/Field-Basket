@@ -94,12 +94,12 @@ export default function CartDrawer({ open, onClose }: Props) {
     const orderLines = cart
       .map(
         (item) =>
-          `- ${item.product.name} (${item.quantity}${item.product.unit}) - ₹${
+          `- ${item.product.name} (${item.quantity}${item.product.unit}) - د.إ${
             item.product.price * item.quantity
           }`
       )
       .join("%0A");
-    const message = `Hello, I want to order:%0A${orderLines}%0ATotal: ₹${total}`;
+  const message = `Hello, I want to order:%0A${orderLines}%0ATotal: د.إ${total}`;
     const phone = "+916282821603"; // Replace with your WhatsApp number if needed
     const waLink = `https://wa.me/${phone}?text=${message}`;
     window.open(waLink, "_blank");
@@ -226,7 +226,7 @@ export default function CartDrawer({ open, onClose }: Props) {
               ))}
               <div className="flex justify-between font-bold text-lg mt-4 border-t pt-4">
                 <span>Total:</span>
-                <span className="text-green-700">₹{total}</span>
+                <span className="text-green-700">د.إ {total}</span>
               </div>
               {isMobile && (
                 <button

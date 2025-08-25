@@ -13,14 +13,14 @@ const CartItem: React.FC<CartItemProps> = ({ name, price, unit, quantity, onRemo
   <div className="grid grid-cols-12 items-center gap-2 py-3 px-3 mb-2 bg-white rounded-xl shadow-sm border border-gray-200">
     <div className="col-span-5 sm:col-span-6">
       <h3 className="font-semibold truncate">{name}</h3>
-      <p className="text-xs text-gray-500">₹{price} / {unit}</p>
+  <p className="text-xs text-gray-500">د.إ {price} / {unit}</p>
     </div>
     <div className="col-span-4 sm:col-span-3 flex items-center justify-center gap-2">
       <button onClick={onRemove} className="bg-red-400 hover:bg-red-500 text-white w-7 h-7 rounded-full text-lg font-bold flex items-center justify-center">-</button>
       <span className="w-6 text-center font-semibold">{quantity}</span>
       <button onClick={onAdd} className="bg-green-400 hover:bg-green-500 text-white w-7 h-7 rounded-full text-lg font-bold flex items-center justify-center">+</button>
     </div>
-    <div className="col-span-3 sm:col-span-3 text-right font-bold text-green-700 text-base">₹{price * quantity}</div>
+  <div className="col-span-3 sm:col-span-3 text-right font-bold text-green-700 text-base">د.إ {price * quantity}</div>
   </div>
 );
 

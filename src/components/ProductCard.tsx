@@ -26,7 +26,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ image, name, price, unit, des
       <h2 className="text-xl font-extrabold mb-1 text-green-800 drop-shadow">{name}</h2>
       <p className="text-gray-600 mb-2 text-center min-h-[40px]">{description}</p>
       <div className="flex items-center justify-between mt-auto mb-3">
-        <p className="text-green-700 font-bold text-lg">₹{price} <span className="text-sm font-medium text-green-900">/ {unit}</span></p>
+  <p className="text-green-700 font-bold text-lg">د.إ {price} <span className="text-sm font-medium text-green-900">/ {unit}</span></p>
       </div>
       <div className="flex gap-2 mt-2">
         <button

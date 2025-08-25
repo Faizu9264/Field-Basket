@@ -48,8 +48,18 @@ export default function Home() {
   let filteredVegetables = vegetables;
   if (search.trim() !== "") {
     const keyword = search.toLowerCase();
-    filteredFruits = fruits.filter(fruit => fruit.name.toLowerCase().includes(keyword));
-    filteredVegetables = vegetables.filter(veg => veg.name.toLowerCase().includes(keyword));
+    // Fruits: startsWith first, then includes
+    const fruitStarts = fruits.filter(fruit => fruit.name.toLowerCase().startsWith(keyword));
+    const fruitContains = fruits.filter(fruit =>
+      !fruit.name.toLowerCase().startsWith(keyword) && fruit.name.toLowerCase().includes(keyword)
+    );
+    filteredFruits = [...fruitStarts, ...fruitContains];
+    // Vegetables: startsWith first, then includes
+    const vegStarts = vegetables.filter(veg => veg.name.toLowerCase().startsWith(keyword));
+    const vegContains = vegetables.filter(veg =>
+      !veg.name.toLowerCase().startsWith(keyword) && veg.name.toLowerCase().includes(keyword)
+    );
+    filteredVegetables = [...vegStarts, ...vegContains];
   } else {
     // If no search, filter by tab
     if (activeTab === "fruit") {
