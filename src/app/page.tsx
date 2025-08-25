@@ -16,7 +16,7 @@ export default function Home() {
   const router = useRouter();
   const isMobile = useIsMobile();
   const [cartOpen, setCartOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<'fruit' | 'vegetable' | 'all'>("fruit");
+  const [activeTab, setActiveTab] = React.useState<'fruit' | 'vegetable' | 'all'>("all");
   const [search, setSearch] = React.useState("");
   const [loading, setLoading] = React.useState(true);
   React.useEffect(() => {
