@@ -49,8 +49,8 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
         const { latitude, longitude } = position.coords;
         setUserLocation({ lat: latitude, lng: longitude });
         setLocationError("");
-        const dist = getDistanceFromLatLonInKm(latitude, longitude, SHOP_LOCATION.lat, SHOP_LOCATION.lng);
-        setDeliveryAllowed(dist <= 10);
+  const dist = getDistanceFromLatLonInKm(latitude, longitude, SHOP_LOCATION.lat, SHOP_LOCATION.lng);
+  setDeliveryAllowed(dist <= 15);
         // Reverse geocode using OpenStreetMap Nominatim
         try {
           const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
@@ -77,8 +77,8 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
       if (data.status === "OK" && data.results && data.results[0]) {
         const { lat, lng } = data.results[0].geometry.location;
         setUserLocation({ lat, lng });
-        const dist = getDistanceFromLatLonInKm(lat, lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng);
-        setDeliveryAllowed(dist <= 10);
+  const dist = getDistanceFromLatLonInKm(lat, lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng);
+  setDeliveryAllowed(dist <= 15);
         setLocationError("");
       } else if (data.status === "ZERO_RESULTS") {
         setLocationError("Address not found. Please enter a more specific location.");
@@ -95,7 +95,7 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const handlePlaceOrder = () => {
     if (cart.length === 0) return;
-    if (!houseNumber.trim() || !manualAddress.trim()) {
+    if (!houseNumber.trim() && !manualAddress.trim()) {
       toast.error("Please enter both your house number and delivery location.", {
         duration: 3500,
         style: {
@@ -111,6 +111,38 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
       });
       return;
     }
+    if (!houseNumber.trim()) {
+      toast.error("Please enter your house or flat number.", {
+        duration: 3500,
+        style: {
+          borderRadius: '12px',
+          background: '#fff',
+          color: '#b91c1c',
+          border: '1px solid #fca5a5',
+          fontWeight: 'bold',
+          fontSize: '1rem',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+        },
+        icon: '🏠',
+      });
+      return;
+    }
+    if (!manualAddress.trim()) {
+      toast.error("Please enter your delivery location.", {
+        duration: 3500,
+        style: {
+          borderRadius: '12px',
+          background: '#fff',
+          color: '#b91c1c',
+          border: '1px solid #fca5a5',
+          fontWeight: 'bold',
+          fontSize: '1rem',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+        },
+        icon: '📍',
+      });
+      return;
+    }
     const orderLines = cart
       .map(
         (item) =>
@@ -119,6 +151,7 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
           }`
       )
       .join("%0A");
+    const distanceStr = userLocation ? `*Distance from shop:* ${getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km%0A` : "";
     const message =
       `🛒 *New Order from Field Basket*%0A%0A` +
       `*Order Details:*%0A${orderLines}%0A` +
@@ -126,6 +159,7 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
       `*Total:* د.إ${total}%0A` +
       `%0A*House/Flat No.:* ${houseNumber}%0A` +
       `%0A*Delivery Location:* ${manualAddress || "-"}%0A` +
+      distanceStr +
       `%0AThank you!`;
     const phone = "+916282821603"; // Replace with your WhatsApp number if needed
     const waLink = `https://wa.me/${phone}?text=${message}`;
@@ -234,7 +268,21 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                 </PlacesAutocomplete>
                 {userLocation && !locationError && (
                   <div className={deliveryAllowed ? "text-green-700 text-sm mt-1 font-bold" : "text-red-600 text-sm mt-1 font-bold"}>
-                    {deliveryAllowed ? "Delivery available to this location!" : "Sorry, delivery is only available within 10km of our shop. Please visit our store to pick up your order."}
+                    {deliveryAllowed ? (
+                      <>
+                        Delivery available to this location!
+                        <span className="block text-xs text-gray-700 font-normal mt-1">
+                          Distance from shop: {getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        Sorry, delivery is only available within 15km of our shop. Please visit our store to pick up your order.
+                        <span className="block text-xs text-gray-700 font-normal mt-1">
+                          Distance from shop: {getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km
+                        </span>
+                      </>
+                    )}
                   </div>
                 )}
                 {locationError && (

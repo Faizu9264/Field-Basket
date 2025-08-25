@@ -47,7 +47,7 @@ export default function CartPage() {
 					setUserLocation({ lat: latitude, lng: longitude });
 					setLocationError("");
 					const dist = getDistanceFromLatLonInKm(latitude, longitude, SHOP_LOCATION.lat, SHOP_LOCATION.lng);
-					setDeliveryAllowed(dist <= 10);
+					setDeliveryAllowed(dist <= 15);
 					// Reverse geocode using OpenStreetMap Nominatim
 					try {
 						const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
@@ -77,22 +77,54 @@ export default function CartPage() {
 	const handleCheckout = () => {
 		if (cart.length === 0) return;
 		if (!deliveryAllowed) return;
-		if (!houseNumber.trim() || !manualAddress.trim()) {
-			toast.error("Please enter both your house number and delivery location.", {
-				duration: 3500,
-				style: {
-					borderRadius: '12px',
-					background: '#fff',
-					color: '#b91c1c',
-					border: '1px solid #fca5a5',
-					fontWeight: 'bold',
-					fontSize: '1rem',
-					boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
-				},
-				icon: '⚠️',
-			});
-			return;
-		}
+			if (!houseNumber.trim() && !manualAddress.trim()) {
+				toast.error("Please enter both your house number and delivery location.", {
+					duration: 3500,
+					style: {
+						borderRadius: '12px',
+						background: '#fff',
+						color: '#b91c1c',
+						border: '1px solid #fca5a5',
+						fontWeight: 'bold',
+						fontSize: '1rem',
+						boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+					},
+					icon: '⚠️',
+				});
+				return;
+			}
+			if (!houseNumber.trim()) {
+				toast.error("Please enter your house or flat number.", {
+					duration: 3500,
+					style: {
+						borderRadius: '12px',
+						background: '#fff',
+						color: '#b91c1c',
+						border: '1px solid #fca5a5',
+						fontWeight: 'bold',
+						fontSize: '1rem',
+						boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+					},
+					icon: '🏠',
+				});
+				return;
+			}
+			if (!manualAddress.trim()) {
+				toast.error("Please enter your delivery location.", {
+					duration: 3500,
+					style: {
+						borderRadius: '12px',
+						background: '#fff',
+						color: '#b91c1c',
+						border: '1px solid #fca5a5',
+						fontWeight: 'bold',
+						fontSize: '1rem',
+						boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+					},
+					icon: '📍',
+				});
+				return;
+			}
 		const orderLines = cart
 			.map(
 				(item) =>
@@ -109,14 +141,16 @@ export default function CartPage() {
 		} else {
 			locationMsg = `%0AAddress: Shop Pickup`;
 		}
-				const message =
-					`🛒 *New Order from Field Basket*%0A%0A` +
-					`*Order Details:*%0A${orderLines}%0A` +
-					`-----------------------------%0A` +
-					`*Total:* د.إ${total}%0A` +
-					`%0A*House/Flat No.:* ${houseNumber}%0A` +
-					`%0A*Delivery Location:* ${manualAddress || "-"}%0A` +
-					`%0AThank you!`;
+					const distanceStr = userLocation ? `*Distance from shop:* ${getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km%0A` : "";
+					const message =
+						`🛒 *New Order from Field Basket*%0A%0A` +
+						`*Order Details:*%0A${orderLines}%0A` +
+						`-----------------------------%0A` +
+						`*Total:* د.إ${total}%0A` +
+						`%0A*House/Flat No.:* ${houseNumber}%0A` +
+						`%0A*Delivery Location:* ${manualAddress || "-"}%0A` +
+						distanceStr +
+						`%0AThank you!`;
 		const phone = "+916282821603";
 		const waLink = `https://wa.me/${phone}?text=${message}`;
 		window.open(waLink, "_blank");
@@ -157,22 +191,22 @@ export default function CartPage() {
 							Use Current Location
 						</button>
 					</div>
-					<PlacesAutocomplete
-						value={manualAddress}
-						onChange={setManualAddress}
-								onSelect={async address => {
-									setManualAddress(address);
-									// Geocode the address to get coordinates
-									try {
-										const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`);
-										const data = await response.json();
-										if (data.status === "OK" && data.results && data.results[0]) {
-											const { lat, lng } = data.results[0].geometry.location;
-											setUserLocation({ lat, lng });
-											const dist = getDistanceFromLatLonInKm(lat, lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng);
-											setDeliveryAllowed(dist <= 10);
-											setLocationError("");
-										} else if (data.status === "ZERO_RESULTS") {
+								<PlacesAutocomplete
+									value={manualAddress}
+									onChange={setManualAddress}
+									onSelect={async address => {
+										setManualAddress(address);
+										// Geocode the address to get coordinates
+										try {
+											const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`);
+											const data = await response.json();
+											if (data.status === "OK" && data.results && data.results[0]) {
+												const { lat, lng } = data.results[0].geometry.location;
+												setUserLocation({ lat, lng });
+												const dist = getDistanceFromLatLonInKm(lat, lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng);
+												setDeliveryAllowed(dist <= 15);
+												setLocationError("");
+											} else if (data.status === "ZERO_RESULTS") {
 											setLocationError("Address not found. Please enter a more specific location.");
 											setDeliveryAllowed(false);
 										} else {
@@ -214,11 +248,25 @@ export default function CartPage() {
 							</div>
 						)}
 					</PlacesAutocomplete>
-								{userLocation && !locationError && (
-									<div className={deliveryAllowed ? "text-green-700 text-sm mt-1 font-bold" : "text-red-600 text-sm mt-1 font-bold"}>
-										{deliveryAllowed ? "Delivery available to this location!" : "Sorry, delivery is only available within 10km of our shop. Please visit our store to pick up your order."}
-									</div>
-								)}
+											{userLocation && !locationError && (
+												<div className={deliveryAllowed ? "text-green-700 text-sm mt-1 font-bold" : "text-red-600 text-sm mt-1 font-bold"}>
+													{deliveryAllowed ? (
+														<>
+															Delivery available to this location!
+															<span className="block text-xs text-gray-700 font-normal mt-1">
+																Distance from shop: {getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km
+															</span>
+														</>
+													) : (
+														<>
+															Sorry, delivery is only available within 15km of our shop. Please visit our store to pick up your order.
+															<span className="block text-xs text-gray-700 font-normal mt-1">
+																Distance from shop: {getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km
+															</span>
+														</>
+													)}
+												</div>
+											)}
 								{locationError && (
 									<div className="text-red-600 text-sm mt-1 font-bold">{locationError}</div>
 								)}
