@@ -118,6 +118,7 @@ export default function ProductGrid({
                         unit={fruit.unit}
                         description={fruit.description}
                         onAddToCart={() => onAddToCart(fruit)}
+                        onBuyNow={onBuyNow ? () => onBuyNow(fruit) : undefined}
                       />
                     ))}
                   </div>
@@ -146,6 +147,7 @@ export default function ProductGrid({
                         unit={veg.unit}
                         description={veg.description}
                         onAddToCart={() => onAddToCart(veg)}
+                        onBuyNow={onBuyNow ? () => onBuyNow(veg) : undefined}
                       />
                     ))}
                   </div>

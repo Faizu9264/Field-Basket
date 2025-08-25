@@ -23,8 +23,10 @@ export default function Home() {
     const timer = setTimeout(() => setLoading(false), 1200);
     return () => clearTimeout(timer);
   }, []);
-  const cartCount = useCartStore((state) => state.cart.reduce((sum, item) => sum + item.quantity, 0));
+  const cart = useCartStore((state) => state.cart);
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const addToCart = useCartStore((state) => state.addToCart);
+  const lastBuyNowProduct = React.useRef<Product | null>(null);
   const handleCartIconClick = () => {
     if (isMobile) {
       setCartOpen(true);
@@ -34,14 +36,24 @@ export default function Home() {
   };
 
   // Buy Now handler: add to cart, then open cart drawer (mobile) or redirect to cart (desktop)
-  const handleBuyNow = (product: Product) => {
+  const handleBuyNow = React.useCallback((product: Product) => {
+    lastBuyNowProduct.current = product;
     addToCart(product);
-    if (isMobile) {
-      setCartOpen(true);
-    } else {
-      router.push("/cart");
+  }, [addToCart]);
+
+  // Effect: when cart changes and lastBuyNowProduct is set, open drawer or redirect
+  React.useEffect(() => {
+    if (!lastBuyNowProduct.current) return;
+    const inCart = cart.find(item => item.product.id === lastBuyNowProduct.current?.id);
+    if (inCart) {
+      if (isMobile) {
+        setCartOpen(true);
+      } else {
+        router.push("/cart");
+      }
+      lastBuyNowProduct.current = null;
     }
-  };
+  }, [cart, isMobile, router]);
 
   // Filter logic: if search is non-empty, show all matching fruits and vegetables regardless of tab
   let filteredFruits = fruits;
