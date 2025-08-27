@@ -8,6 +8,7 @@ export interface Product {
   price: number;
   unit: string;
   description: string;
+  type?: string; // 'fruit' | 'vegetable'
 }
 
 export interface CartItem {
