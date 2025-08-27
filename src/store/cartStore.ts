@@ -56,6 +56,18 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: 'cart-storage',
+      partialize: (state) => ({
+        cart: state.cart.map((item) => ({
+          product: {
+            id: item.product.id,
+            name: item.product.name,
+            price: item.product.price,
+            unit: item.product.unit,
+            type: item.product.type,
+          },
+          quantity: item.quantity,
+        })),
+      }),
     }
   )
 );

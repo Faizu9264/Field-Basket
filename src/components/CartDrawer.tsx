@@ -1,7 +1,7 @@
 "use client";
 
 
-const SHOP_LOCATION = { lat: 10.953891716268787, lng: 76.3179751502432 };
+const SHOP_LOCATION = { lat: 23.619488, lng: 53.707794 };
 
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
@@ -37,6 +37,16 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeFromCart = useCartStore((state) => state.removeFromCart);
   const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  // Delivery charge logic
+  let deliveryDistance = 0;
+  let deliveryCharge = 0;
+  if (userLocation) {
+    deliveryDistance = getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng);
+    if (deliveryDistance > 10) {
+      deliveryCharge = Math.ceil(deliveryDistance - 10) * 2; // 2 AED per km over 10km
+    }
+  }
+  const grandTotal = total + deliveryCharge;
   const isMobile = useIsMobile();
 
   const handleUseCurrentLocation = () => {
@@ -50,7 +60,7 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
         setUserLocation({ lat: latitude, lng: longitude });
         setLocationError("");
   const dist = getDistanceFromLatLonInKm(latitude, longitude, SHOP_LOCATION.lat, SHOP_LOCATION.lng);
-  setDeliveryAllowed(dist <= 15);
+  setDeliveryAllowed(dist <= 10);
         // Reverse geocode using OpenStreetMap Nominatim
         try {
           const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
@@ -106,7 +116,7 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
         const { lat, lng } = data.results[0].geometry.location;
         setUserLocation({ lat, lng });
   const dist = getDistanceFromLatLonInKm(lat, lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng);
-  setDeliveryAllowed(dist <= 15);
+  setDeliveryAllowed(dist <= 10);
         setLocationError("");
       } else if (data.status === "ZERO_RESULTS") {
         setLocationError("Address not found. Please enter a more specific location.");
@@ -174,21 +184,23 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
     const orderLines = cart
       .map(
         (item) =>
-          `- ${item.product.name} (${item.quantity}${item.product.unit}) - د.إ${
+          `- ${item.product.name} (${item.quantity}${item.product.unit}) - AED ${
             item.product.price * item.quantity
           }`
       )
       .join("%0A");
     const distanceStr = userLocation ? `*Distance from shop:* ${getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km%0A` : "";
     const message =
-      `🛒 *New Order from Field Basket*%0A%0A` +
-      `*Order Details:*%0A${orderLines}%0A` +
-      `-----------------------------%0A` +
-      `*Total:* د.إ${total}%0A` +
-      `%0A*House/Flat No.:* ${houseNumber}%0A` +
-      `%0A*Delivery Location:* ${manualAddress || "-"}%0A` +
-      distanceStr +
-      `%0AThank you!`;
+  `🛒 *New Order from Field Basket*%0A%0A` +
+  `*Order Details:*%0A${orderLines}%0A` +
+  `-----------------------------%0A` +
+  `*Total:* AED ${total}%0A` +
+  (deliveryCharge > 0 ? `*Delivery Charge:* AED ${deliveryCharge}%0A` : "") +
+  `*Grand Total:* AED ${grandTotal}%0A` +
+  `%0A*House/Flat No.:* ${houseNumber}%0A` +
+  `%0A*Delivery Location:* ${manualAddress || "-"}%0A` +
+  distanceStr +
+  `%0AThank you!`;
     const phone = "+916282821603"; // Replace with your WhatsApp number if needed
     const waLink = `https://wa.me/${phone}?text=${message}`;
     window.open(waLink, "_blank");
@@ -295,17 +307,17 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                   )}
                 </PlacesAutocomplete>
                 {userLocation && !locationError && (
-                  <div className={deliveryAllowed ? "text-green-700 text-sm mt-1 font-bold" : "text-red-600 text-sm mt-1 font-bold"} style={{background: '#fff', borderRadius: 8, padding: '4px 8px'}}>
+                  <div className={deliveryAllowed ? "text-green-700 text-sm mt-1 font-bold" : "text-yellow-700 text-sm mt-1 font-bold"} style={{background: '#fff', borderRadius: 8, padding: '4px 8px'}}>
                     {deliveryAllowed ? (
                       <>
-                        Delivery available to this location!
+                        <span className="text-green-700 font-bold">Free Delivery available!</span>
                         <span className="block text-xs text-gray-700 font-normal mt-1">
                           Distance from shop: {getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km
                         </span>
                       </>
                     ) : (
                       <>
-                        Sorry, delivery is only available within 15km of our shop. Please visit our store to pick up your order.
+                        <span className="text-yellow-700 font-bold">Delivery is available, but a delivery charge applies for locations beyond 10km.</span>
                         <span className="block text-xs text-gray-700 font-normal mt-1">
                           Distance from shop: {getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km
                         </span>
@@ -342,13 +354,24 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                   <span style={{ fontFamily: 'UAEDirham', fontSize: '1.1em', verticalAlign: 'middle' }}>&#x00EA;</span> {total}
                 </span>
               </div>
+                <div className="flex justify-between font-bold text-lg mt-2">
+                  <span>Delivery Charge:</span>
+                  {deliveryCharge > 0 ? (
+                    <span className="text-yellow-700"><span style={{ fontFamily: 'UAEDirham', fontSize: '1.1em', verticalAlign: 'middle' }}>&#x00EA;</span> {deliveryCharge}</span>
+                  ) : (
+                    <span className="text-green-700 font-bold">FREE</span>
+                  )}
+                </div>
+                <div className="flex justify-between font-bold text-lg mt-2">
+                  <span>Grand Total:</span>
+                  <span className="text-green-900"><span style={{ fontFamily: 'UAEDirham', fontSize: '1.1em', verticalAlign: 'middle' }}>&#x00EA;</span> {grandTotal}</span>
+                </div>
               {isMobile && (
                 <>
                   <Toaster position="top-center" />
                   <button
                     className="w-full bg-gradient-to-r from-green-500 to-lime-400 hover:from-green-600 hover:to-lime-500 text-white py-3 rounded-xl mt-4 font-bold text-lg shadow-lg transition"
                     onClick={handlePlaceOrder}
-                    disabled={!deliveryAllowed}
                   >
                     Place Order
                   </button>
