@@ -30,7 +30,7 @@ export default function HomeClient({ initialProducts, initialTotal, initialLimit
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const totalPages = Math.ceil(initialTotal / initialLimit);
-  const [showBrowser, setShowBrowser] = useState(false);
+  // Remove showBrowser logic
   const router = useRouter();
 
   useEffect(() => {
@@ -65,64 +65,28 @@ export default function HomeClient({ initialProducts, initialTotal, initialLimit
         <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
       )}
       <Hero />
-      {/* Show initial products instantly after spinner, use ProductBrowser for pagination/search or next/prev */}
-      {(!showBrowser && search === "" && activeTab === "all") ? (
-        <>
-          <ProductGrid
-            fruits={initialProducts.filter(p => (p.type?.toLowerCase?.() === 'fruit') || !p.type)}
-            vegetables={initialProducts.filter(p => p.type?.toLowerCase?.() === 'vegetable')}
-            activeTab={activeTab}
-            onAddToCart={(product) => {
-              addToCart(product);
-              // Optionally show toast here
-            }}
-            onBuyNow={(product) => {
-              addToCart(product);
-              if (isMobile) {
-                setCartOpen(true);
-              } else {
-                router.push("/cart");
-              }
-            }}
-            isMobile={isMobile}
-            fetching={false}
-          />
-          {totalPages > 1 && (
-            <div className="flex gap-2 mt-6 justify-center">
-              <span className="px-2 py-1 text-green-800 font-bold">Page {page} of {totalPages}</span>
-              <button
-                className="px-3 py-1 rounded bg-green-200 text-green-900 font-semibold disabled:opacity-50"
-                onClick={() => { setShowBrowser(true); setPage(2); }}
-                disabled={page === totalPages}
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
-        <ProductBrowser
-          initialProducts={initialProducts}
-          initialTotal={initialTotal}
-          initialLimit={initialLimit}
-          activeTab={activeTab}
-          search={search}
-          page={page}
-          setPage={setPage}
-          isMobile={isMobile}
-          onAddToCart={(product) => {
-            addToCart(product);
-          }}
-          onBuyNow={(product) => {
-            addToCart(product);
-            if (isMobile) {
-              setCartOpen(true);
-            } else {
-              router.push("/cart");
-            }
-          }}
-        />
-      )}
+      {/* Always use ProductBrowser for all tab/search/page changes except very first SSR render */}
+      <ProductBrowser
+        initialProducts={initialProducts}
+        initialTotal={initialTotal}
+        initialLimit={initialLimit}
+        activeTab={activeTab}
+        search={search}
+        page={page}
+        setPage={setPage}
+        isMobile={isMobile}
+        onAddToCart={(product) => {
+          addToCart(product);
+        }}
+        onBuyNow={(product) => {
+          addToCart(product);
+          if (isMobile) {
+            setCartOpen(true);
+          } else {
+            router.push("/cart");
+          }
+        }}
+      />
     </div>
   );
 }

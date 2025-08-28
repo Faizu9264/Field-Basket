@@ -11,6 +11,8 @@ interface ProductGridProps {
   onBuyNow?: (product: Product) => void;
   isMobile: boolean;
   fetching?: boolean;
+  forceShowSkeleton?: boolean;
+  hasFetched?: boolean;
 }
 
 export default function ProductGrid({
@@ -20,7 +22,9 @@ export default function ProductGrid({
   onAddToCart,
   onBuyNow,
   isMobile,
-  fetching
+  fetching,
+  forceShowSkeleton = false,
+  hasFetched = false
 }: ProductGridProps) {
   const FRUIT_LIMIT = isMobile ? 4 : 6;
   const VEG_LIMIT = isMobile ? 4 : 6;
@@ -28,28 +32,29 @@ export default function ProductGrid({
   const [showAllVeggies, setShowAllVeggies] = useState(false);
 
   const noResults = fruits.length === 0 && vegetables.length === 0;
-     if (fetching) {
-       return (
-         <div id="products" className="w-full max-w-5xl mt-2">
-           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-             {Array.from({ length: 6 }).map((_, i) => (
-               <ProductCardSkeleton key={i} />
-             ))}
-           </div>
-         </div>
-       );
-     }
+  if (forceShowSkeleton) {
+    return (
+      <div id="products" className="w-full max-w-5xl mt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <ProductCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-     return (
-       <div id="products" className="w-full max-w-5xl mt-2">
-         {noResults && (
-           <div className="w-full flex flex-col items-center justify-center py-16">
-             <span className="text-4xl mb-4">🍃</span>
-             <div className="text-lg font-semibold text-green-700">No results found for your search.</div>
-             <div className="text-gray-500 mt-1">Try a different keyword or check your spelling.</div>
-           </div>
-         )}
-         {!noResults && (
+  // Only show 'No results found' if not fetching, not skeleton, hasFetched, and noResults
+  return (
+    <div id="products" className="w-full max-w-5xl mt-2">
+      {!forceShowSkeleton && !fetching && hasFetched && noResults && (
+        <div className="w-full flex flex-col items-center justify-center py-16">
+          <span className="text-4xl mb-4">🍃</span>
+          <div className="text-lg font-semibold text-green-700">No results found for your search.</div>
+          <div className="text-gray-500 mt-1">Try a different keyword or check your spelling.</div>
+        </div>
+      )}
+      {!noResults && (
            <>
           {activeTab === 'fruit' && fruits.length > 0 && (
             <section className="mb-10">

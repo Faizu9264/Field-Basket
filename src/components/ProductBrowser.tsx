@@ -30,78 +30,114 @@ const ProductBrowser: React.FC<ProductBrowserProps> = ({
   onBuyNow
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [fetchTrigger, setFetchTrigger] = useState(0);
   const [total, setTotal] = useState(initialTotal);
   const [limit] = useState(initialLimit);
   const [fetching, setFetching] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
+  const [pendingFilterTab, setPendingFilterTab] = useState(false);
+  const [showSkeleton, setShowSkeleton] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { productPages, setProductPage, clearProductPages } = useProductPaginationStore();
   const isFirstLoad = useRef(true);
 
   // Helper to fetch and cache products
-  const fetchProducts = async (pageNum: number, searchTerm: string, cacheKey: string) => {
+  // AbortController for request cancellation
+  const abortRef = useRef<AbortController | null>(null);
+  // Helper to fetch and cache products
+  const fetchProducts = async (pageNum: number, searchTerm: string, cacheKey: string, tab: string = activeTab) => {
     setFetching(true);
+    setShowSkeleton(true);
+    setProducts([]); // Clear products so skeleton always shows
     setError(null);
+    setHasFetched(false);
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       const params = new URLSearchParams({
         page: pageNum.toString(),
         limit: limit.toString(),
       });
-      if (searchTerm.trim()) params.append("search", searchTerm.trim());
-      const res = await fetch(`/api/products?${params.toString()}`);
+      if (searchTerm.trim()) {
+        params.append("search", searchTerm.trim());
+        // Do NOT send type param when searching
+      } else if (tab !== "all" && tab !== "") {
+        // Only send type param if not searching and not 'all'
+        params.append("type", tab);
+      }
+      const res = await fetch(`/api/products?${params.toString()}`, { signal: controller.signal });
       if (!res.ok) throw new Error(await res.text() || "API error");
       const data = await res.json();
-      setProducts(data.products || []);
-      setProductPage(cacheKey, data.products || []);
-      setTotal(data.total || 0);
+  setProducts(data.products || []);
+  setProductPage(cacheKey, data.products || []);
+  setTotal(data.total || 0);
+  setHasFetched(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load products");
+      if (err && typeof err === "object" && "name" in err && (err as { name: string }).name === "AbortError") return;
+  setError(err instanceof Error ? err.message : "Failed to load products");
+  setHasFetched(true);
     } finally {
       setFetching(false);
+      setShowSkeleton(false);
     }
   };
-
-  // On first mount, use SSR data for page 1 only, and always set cache for page 1
-  useEffect(() => {
-    if (page === 1 && search === "") {
-      setProducts(initialProducts);
-      setTotal(initialTotal);
-      setProductPage(`page=1&limit=${limit}&search=`, initialProducts);
-      setFetching(false);
-    }
-    isFirstLoad.current = false;
-    // eslint-disable-next-line
-  }, []);
-
-  // Handle search: reset to page 1, clear cache, fetch fresh
+  // Debounced search effect (700ms)
   useEffect(() => {
     if (search !== "") {
       setPage(1);
       clearProductPages();
-      setFetching(true);
+      setShowSkeleton(true);
+      setProducts([]);
       const handler = setTimeout(() => {
-        const cacheKey = `page=1&limit=${limit}&search=${search.trim()}`;
-        fetchProducts(1, search, cacheKey);
-      }, 400);
+        setFetchTrigger(f => f + 1);
+      }, 700);
       return () => clearTimeout(handler);
     }
     // eslint-disable-next-line
-  }, [search]);
+  }, [search, activeTab]);
+
+  // Refetch when tab changes (filter changes)
+  useEffect(() => {
+    if (search === "") {
+      setPage(1);
+      clearProductPages();
+      setShowSkeleton(true);
+      setProducts([]);
+      setPendingFilterTab(true);
+      setFetchTrigger(f => f + 1);
+    }
+    // eslint-disable-next-line
+  }, [activeTab]);
 
   // Handle page changes (and also page 1 after first mount)
   useEffect(() => {
-    const cacheKey = `page=${page}&limit=${limit}&search=${search.trim()}`;
+    const cacheKey = `page=${page}&limit=${limit}&search=${search.trim()}&type=${activeTab}`;
     // Use cache if available
+    setShowSkeleton(true);
+    setProducts([]);
     if (productPages[cacheKey]) {
       setProducts(productPages[cacheKey]);
       setFetching(false);
+      setHasFetched(true);
+      setTimeout(() => setShowSkeleton(false), 300);
       return;
     }
     // If SSR initial page, skip (handled by first mount effect)
-    if (isFirstLoad.current && page === 1 && search === "") return;
+    if (isFirstLoad.current && page === 1 && search === "" && activeTab === "all") return;
     // Otherwise fetch
-    fetchProducts(page, search, cacheKey);
+    setFetchTrigger(f => f + 1);
     // eslint-disable-next-line
-  }, [page, search, initialProducts, initialTotal]);
+  }, [page, search, activeTab, initialProducts, initialTotal]);
+
+  // Effect to actually fetch products when fetchTrigger changes
+  useEffect(() => {
+    const cacheKey = `page=${page}&limit=${limit}&search=${search.trim()}&type=${activeTab}`;
+    // If SSR initial page, skip
+    if (isFirstLoad.current && page === 1 && search === "" && activeTab === "all") return;
+    fetchProducts(page, search, cacheKey, activeTab);
+    // eslint-disable-next-line
+  }, [fetchTrigger]);
 
   const fruits = products.filter(p => p.type?.toLowerCase() === "fruit");
   const vegetables = products.filter(p => p.type?.toLowerCase() === "vegetable");
@@ -119,8 +155,20 @@ const ProductBrowser: React.FC<ProductBrowserProps> = ({
         onBuyNow={onBuyNow}
         isMobile={isMobile}
         fetching={fetching}
+        forceShowSkeleton={showSkeleton}
+        hasFetched={hasFetched}
       />
-      {showPagination && (
+      {/* Show spinner over pagination if loading a new page */}
+      {showSkeleton && (
+        <div className="flex justify-center items-center py-8">
+          <svg className="animate-spin h-8 w-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+          </svg>
+        </div>
+      )}
+      {/* Hide pagination while loading/filtering, only show when not loading */}
+      {showPagination && !showSkeleton && (
         <div className="flex gap-2 mt-6 justify-center">
           <button
             className="px-3 py-1 rounded bg-green-200 text-green-900 font-semibold disabled:opacity-50"

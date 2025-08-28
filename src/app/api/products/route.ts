@@ -19,6 +19,7 @@ export async function GET(req: Request) {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = parseInt(searchParams.get("limit") || "12", 10);
   const search = searchParams.get("search") || "";
+  const type = searchParams.get("type") || "";
 
   const query: Record<string, unknown> = {};
   if (search) {
@@ -26,6 +27,9 @@ export async function GET(req: Request) {
       { name: { $regex: search, $options: "i" } },
       { description: { $regex: search, $options: "i" } },
     ];
+  }
+  if (type && type !== "all") {
+    query.type = { $regex: `^${type}$`, $options: "i" };
   }
 
   const total = await db.collection("products").countDocuments(query);
