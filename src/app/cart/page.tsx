@@ -27,13 +27,49 @@ export default function CartPage() {
 	const addToCart = useCartStore((state) => state.addToCart);
 	const updateQuantity = useCartStore((state) => state.updateQuantity);
 	const removeFromCart = useCartStore((state) => state.removeFromCart);
+	const clearCart = useCartStore((state) => state.clearCart);
 	const isMobile = useIsMobile();
 	const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
 	const [manualAddress, setManualAddress] = useState("");
 	const [houseNumber, setHouseNumber] = useState("");
 	const [locationError, setLocationError] = useState("");
 	const [deliveryAllowed, setDeliveryAllowed] = useState(true);
+	const [placingOrder, setPlacingOrder] = useState(false);
+
+	// Clear cart only when user returns to the app after placing order
+	React.useEffect(() => {
+		const handleVisibility = () => {
+			if (document.visibilityState === 'visible' && localStorage.getItem('fb_cart_clear_on_return') === '1') {
+				clearCart();
+				localStorage.removeItem('fb_cart_clear_on_return');
+			}
+		};
+		document.addEventListener('visibilitychange', handleVisibility);
+		return () => document.removeEventListener('visibilitychange', handleVisibility);
+	}, [clearCart]);
+
 	const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+	// Delivery charge logic (same as CartDrawer)
+	const [deliveryDistance, setDeliveryDistance] = useState(0);
+	const [deliveryCharge, setDeliveryCharge] = useState(0);
+	React.useEffect(() => {
+		if (userLocation) {
+			const dist = getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng);
+			setDeliveryDistance(dist);
+			if (dist > 10) {
+				setDeliveryCharge(Math.ceil(dist - 10) * 2); // 2 AED per km over 10km
+				setDeliveryAllowed(true); // Always allow delivery, just add charge
+			} else {
+				setDeliveryCharge(0);
+				setDeliveryAllowed(true); // Free delivery within 10km
+			}
+		} else {
+			setDeliveryDistance(0);
+			setDeliveryCharge(0);
+			setDeliveryAllowed(true);
+		}
+	}, [userLocation]);
+	const grandTotal = total + deliveryCharge;
 
 		const handleUseCurrentLocation = () => {
 			if (!navigator.geolocation) {
@@ -76,83 +112,97 @@ export default function CartPage() {
 	const handleCheckout = () => {
 		if (cart.length === 0) return;
 		if (!deliveryAllowed) return;
-			if (!houseNumber.trim() && !manualAddress.trim()) {
-				toast.error("Please enter both your house number and delivery location.", {
-					duration: 3500,
-					style: {
-						borderRadius: '12px',
-						background: '#fff',
-						color: '#b91c1c',
-						border: '1px solid #fca5a5',
-						fontWeight: 'bold',
-						fontSize: '1rem',
-						boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
-					},
-					icon: '⚠️',
-				});
-				return;
-			}
-			if (!houseNumber.trim()) {
-				toast.error("Please enter your house or flat number.", {
-					duration: 3500,
-					style: {
-						borderRadius: '12px',
-						background: '#fff',
-						color: '#b91c1c',
-						border: '1px solid #fca5a5',
-						fontWeight: 'bold',
-						fontSize: '1rem',
-						boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
-					},
-					icon: '🏠',
-				});
-				return;
-			}
-			if (!manualAddress.trim()) {
-				toast.error("Please enter your delivery location.", {
-					duration: 3500,
-					style: {
-						borderRadius: '12px',
-						background: '#fff',
-						color: '#b91c1c',
-						border: '1px solid #fca5a5',
-						fontWeight: 'bold',
-						fontSize: '1rem',
-						boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
-					},
-					icon: '📍',
-				});
-				return;
-			}
+		if (!houseNumber.trim() && !manualAddress.trim()) {
+			toast.error("Please enter both your house number and delivery location.", {
+				duration: 3500,
+				style: {
+					borderRadius: '12px',
+					background: '#fff',
+					color: '#b91c1c',
+					border: '1px solid #fca5a5',
+					fontWeight: 'bold',
+					fontSize: '1rem',
+					boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+				},
+				icon: '⚠️',
+			});
+			return;
+		}
+		if (!houseNumber.trim()) {
+			toast.error("Please enter your house or flat number.", {
+				duration: 3500,
+				style: {
+					borderRadius: '12px',
+					background: '#fff',
+					color: '#b91c1c',
+					border: '1px solid #fca5a5',
+					fontWeight: 'bold',
+					fontSize: '1rem',
+					boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+				},
+				icon: '🏠',
+			});
+			return;
+		}
+		if (!manualAddress.trim()) {
+			toast.error("Please enter your delivery location.", {
+				duration: 3500,
+				style: {
+					borderRadius: '12px',
+					background: '#fff',
+					color: '#b91c1c',
+					border: '1px solid #fca5a5',
+					fontWeight: 'bold',
+					fontSize: '1rem',
+					boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+				},
+				icon: '📍',
+			});
+			return;
+		}
+		setPlacingOrder(true);
+		// Use the best possible Dirham representation for WhatsApp: Arabic letters 'د.إ'
+		const dirham = 'د.إ';
 		const orderLines = cart
 			.map(
 				(item) =>
-					`- ${item.product.name} (${item.quantity}${item.product.unit}) - د.إ${
-						item.product.price * item.quantity
-					}`
+					`- ${item.product.name} (${item.quantity}${item.product.unit}) - ${dirham} ${item.product.price * item.quantity}`
 			)
 			.join("%0A");
-		let locationMsg = "";
-		if (userLocation) {
-			locationMsg = `%0ALocation: https://maps.google.com/?q=${userLocation.lat},${userLocation.lng}`;
-		} else if (manualAddress) {
-			locationMsg = `%0AAddress: ${manualAddress}`;
-		} else {
-			locationMsg = `%0AAddress: Shop Pickup`;
-		}
-					const distanceStr = userLocation ? `*Distance from shop:* ${getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km%0A` : "";
-					const message =
-						`🛒 *New Order from Field Basket*%0A%0A` +
-						`*Order Details:*%0A${orderLines}%0A` +
-						`-----------------------------%0A` +
-						`*Total:* د.إ${total}%0A` +
-						`%0A*House/Flat No.:* ${houseNumber}%0A` +
-						`%0A*Delivery Location:* ${manualAddress || "-"}%0A` +
-						distanceStr +
-						`%0AThank you!`;
+		const distanceStr = userLocation ? `*Distance from shop:* ${getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km%0A` : "";
+		const message =
+			`🛒 *New Order from Field Basket*%0A%0A` +
+			`*Order Details:*%0A${orderLines}%0A` +
+			`-----------------------------%0A` +
+			`*Total:* ${dirham} ${total}%0A` +
+			(deliveryCharge > 0 ? `*Delivery Charge:* ${dirham} ${deliveryCharge}%0A` : "") +
+			`*Grand Total:* ${dirham} ${grandTotal}%0A` +
+			`%0A*House/Flat No.:* ${houseNumber}%0A` +
+			`%0A*Delivery Location:* ${manualAddress || "-"}%0A` +
+			distanceStr +
+			`%0AThank you!`;
 		const phone = "+916282821603";
 		const waLink = `https://wa.me/${phone}?text=${message}`;
-		window.open(waLink, "_blank");
+		// Set flag to clear cart when user returns
+		localStorage.setItem('fb_cart_clear_on_return', '1');
+		const waWindow = window.open(waLink, "_blank");
+		setPlacingOrder(false);
+		if (!waWindow) {
+			toast.error("Could not open WhatsApp. Please allow popups and try again.", {
+				duration: 4000,
+				style: {
+					borderRadius: '12px',
+					background: '#fff',
+					color: '#b91c1c',
+					border: '1px solid #fca5a5',
+					fontWeight: 'bold',
+					fontSize: '1rem',
+					boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+				},
+				icon: '❌',
+			});
+			localStorage.removeItem('fb_cart_clear_on_return');
+		}
 	};
 
 			return (
@@ -247,25 +297,25 @@ export default function CartPage() {
 							</div>
 						)}
 					</PlacesAutocomplete>
-											{userLocation && !locationError && (
-												<div className={deliveryAllowed ? "text-green-700 text-sm mt-1 font-bold" : "text-red-600 text-sm mt-1 font-bold"}>
-													{deliveryAllowed ? (
-														<>
-															Delivery available to this location!
-															<span className="block text-xs text-gray-700 font-normal mt-1">
-																Distance from shop: {getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km
-															</span>
-														</>
-													) : (
-														<>
-															Sorry, delivery is only available within 15km of our shop. Please visit our store to pick up your order.
-															<span className="block text-xs text-gray-700 font-normal mt-1">
-																Distance from shop: {getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km
-															</span>
-														</>
-													)}
-												</div>
-											)}
+																				{userLocation && !locationError && (
+																					<div className={"text-green-700 text-sm mt-1 font-bold"}>
+																						{deliveryDistance <= 10 ? (
+																							<>
+																								<span className="text-green-700 font-bold">Free Delivery available!</span>
+																								<span className="block text-xs text-gray-700 font-normal mt-1">
+																									Distance from shop: {deliveryDistance.toFixed(1)} km
+																								</span>
+																							</>
+																						) : (
+																							<>
+																								<span className="text-yellow-700 font-bold">Delivery is available, but a delivery charge applies for locations beyond 10km.</span>
+																								<span className="block text-xs text-gray-700 font-normal mt-1">
+																									Distance from shop: {deliveryDistance.toFixed(1)} km
+																								</span>
+																							</>
+																						)}
+																					</div>
+																				)}
 								{locationError && (
 									<div className="text-red-600 text-sm mt-1 font-bold">{locationError}</div>
 								)}
@@ -327,12 +377,24 @@ export default function CartPage() {
 										onAdd={() => addToCart(item.product)}
 									/>
 								))}
-																								<div className="flex justify-between font-bold text-lg mt-4 border-t pt-4">
-																									<span>Total:</span>
-																									<span className="text-green-700">
-																										<span style={{ fontFamily: 'UAEDirham', fontSize: '1.1em', verticalAlign: 'middle' }}>&#x00EA;</span> {total}
-																									</span>
-																								</div>
+																																<div className="flex justify-between font-bold text-lg mt-4 border-t pt-4">
+																																	<span>Total:</span>
+																																	<span className="text-green-700">
+																																		<span style={{ fontFamily: 'UAEDirham', fontSize: '1.1em', verticalAlign: 'middle' }}>&#x00EA;</span> {total}
+																																	</span>
+																																</div>
+																																<div className="flex justify-between font-bold text-lg mt-2">
+																																	<span>Delivery Charge:</span>
+																																	{deliveryCharge > 0 ? (
+																																		<span className="text-yellow-700"><span style={{ fontFamily: 'UAEDirham', fontSize: '1.1em', verticalAlign: 'middle' }}>&#x00EA;</span> {deliveryCharge}</span>
+																																	) : (
+																																		<span className="text-green-700 font-bold">FREE</span>
+																																	)}
+																																</div>
+																																<div className="flex justify-between font-bold text-lg mt-2">
+																																	<span>Grand Total:</span>
+																																	<span className="text-green-900"><span style={{ fontFamily: 'UAEDirham', fontSize: '1.1em', verticalAlign: 'middle' }}>&#x00EA;</span> {grandTotal}</span>
+																																</div>
 							</div>
 						</>
 					)}

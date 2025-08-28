@@ -36,6 +36,7 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
   const addToCart = useCartStore((state) => state.addToCart);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeFromCart = useCartStore((state) => state.removeFromCart);
+  const clearCart = useCartStore((state) => state.clearCart);
   const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   // Delivery charge logic
   let deliveryDistance = 0;
@@ -131,6 +132,19 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
     }
   };
 
+  const [placingOrder, setPlacingOrder] = useState(false);
+  // Clear cart only when user returns to the app after placing order
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && localStorage.getItem('fb_cart_clear_on_return') === '1') {
+        clearCart();
+        localStorage.removeItem('fb_cart_clear_on_return');
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [clearCart]);
+
   const handlePlaceOrder = () => {
     if (cart.length === 0) return;
     if (!houseNumber.trim() && !manualAddress.trim()) {
@@ -181,12 +195,13 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
       });
       return;
     }
+    setPlacingOrder(true);
+    // Use the best possible Dirham representation for WhatsApp: Arabic letters 'د.إ'
+    const dirham = 'د.إ';
     const orderLines = cart
       .map(
         (item) =>
-          `- ${item.product.name} (${item.quantity}${item.product.unit}) - AED ${
-            item.product.price * item.quantity
-          }`
+          `- ${item.product.name} (${item.quantity}${item.product.unit}) - ${dirham} ${item.product.price * item.quantity}`
       )
       .join("%0A");
     const distanceStr = userLocation ? `*Distance from shop:* ${getDistanceFromLatLonInKm(userLocation.lat, userLocation.lng, SHOP_LOCATION.lat, SHOP_LOCATION.lng).toFixed(1)} km%0A` : "";
@@ -194,16 +209,35 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
   `🛒 *New Order from Field Basket*%0A%0A` +
   `*Order Details:*%0A${orderLines}%0A` +
   `-----------------------------%0A` +
-  `*Total:* AED ${total}%0A` +
-  (deliveryCharge > 0 ? `*Delivery Charge:* AED ${deliveryCharge}%0A` : "") +
-  `*Grand Total:* AED ${grandTotal}%0A` +
+  `*Total:* ${dirham} ${total}%0A` +
+  (deliveryCharge > 0 ? `*Delivery Charge:* ${dirham} ${deliveryCharge}%0A` : "") +
+  `*Grand Total:* ${dirham} ${grandTotal}%0A` +
   `%0A*House/Flat No.:* ${houseNumber}%0A` +
   `%0A*Delivery Location:* ${manualAddress || "-"}%0A` +
   distanceStr +
   `%0AThank you!`;
     const phone = "+916282821603"; // Replace with your WhatsApp number if needed
     const waLink = `https://wa.me/${phone}?text=${message}`;
-    window.open(waLink, "_blank");
+    // Set flag to clear cart when user returns
+    localStorage.setItem('fb_cart_clear_on_return', '1');
+    const waWindow = window.open(waLink, "_blank");
+    setPlacingOrder(false);
+    if (!waWindow) {
+      toast.error("Could not open WhatsApp. Please allow popups and try again.", {
+        duration: 4000,
+        style: {
+          borderRadius: '12px',
+          background: '#fff',
+          color: '#b91c1c',
+          border: '1px solid #fca5a5',
+          fontWeight: 'bold',
+          fontSize: '1rem',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.10)'
+        },
+        icon: '❌',
+      });
+      localStorage.removeItem('fb_cart_clear_on_return');
+    }
   };
 
   // Prevent background scroll when drawer is open
@@ -370,10 +404,21 @@ const CartDrawer: React.FC<Props> = ({ isOpen, onClose }) => {
                 <>
                   <Toaster position="top-center" />
                   <button
-                    className="w-full bg-gradient-to-r from-green-500 to-lime-400 hover:from-green-600 hover:to-lime-500 text-white py-3 rounded-xl mt-4 font-bold text-lg shadow-lg transition"
+                    className="w-full bg-gradient-to-r from-green-500 to-lime-400 hover:from-green-600 hover:to-lime-500 text-white py-3 rounded-xl mt-4 font-bold text-lg shadow-lg transition flex items-center justify-center gap-2"
                     onClick={handlePlaceOrder}
+                    disabled={placingOrder}
                   >
-                    Place Order
+                    {placingOrder ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                        </svg>
+                        Placing Order...
+                      </>
+                    ) : (
+                      'Place Order'
+                    )}
                   </button>
                 </>
               )}
