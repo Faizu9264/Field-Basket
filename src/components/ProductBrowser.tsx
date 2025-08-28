@@ -12,6 +12,9 @@ interface ProductBrowserProps {
   search: string;
   page: number;
   setPage: (page: number) => void;
+  isMobile: boolean;
+  onAddToCart: (product: Product) => void;
+  onBuyNow: (product: Product) => void;
 }
 
 const ProductBrowser: React.FC<ProductBrowserProps> = ({
@@ -21,7 +24,10 @@ const ProductBrowser: React.FC<ProductBrowserProps> = ({
   activeTab,
   search,
   page,
-  setPage
+  setPage,
+  isMobile,
+  onAddToCart,
+  onBuyNow
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [total, setTotal] = useState(initialTotal);
@@ -109,8 +115,9 @@ const ProductBrowser: React.FC<ProductBrowserProps> = ({
         fruits={activeTab === "vegetable" ? [] : fruits}
         vegetables={activeTab === "fruit" ? [] : vegetables}
         activeTab={activeTab}
-        onAddToCart={() => {}}
-        isMobile={false}
+        onAddToCart={onAddToCart}
+        onBuyNow={onBuyNow}
+        isMobile={isMobile}
         fetching={fetching}
       />
       {showPagination && (
