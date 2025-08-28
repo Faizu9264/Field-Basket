@@ -85,10 +85,13 @@ const ProductBrowser: React.FC<ProductBrowserProps> = ({
   // Debounced search effect (700ms)
   useEffect(() => {
     if (search !== "") {
+      // Only show skeleton and clear products if not SSR initial load
+      if (!(isFirstLoad.current && page === 1 && activeTab === "all")) {
+        setShowSkeleton(true);
+        setProducts([]);
+      }
       setPage(1);
       clearProductPages();
-      setShowSkeleton(true);
-      setProducts([]);
       const handler = setTimeout(() => {
         setFetchTrigger(f => f + 1);
       }, 700);
@@ -100,10 +103,13 @@ const ProductBrowser: React.FC<ProductBrowserProps> = ({
   // Refetch when tab changes (filter changes)
   useEffect(() => {
     if (search === "") {
+      // Only show skeleton and clear products if not SSR initial load
+      if (!(isFirstLoad.current && page === 1 && activeTab === "all")) {
+        setShowSkeleton(true);
+        setProducts([]);
+      }
       setPage(1);
       clearProductPages();
-      setShowSkeleton(true);
-      setProducts([]);
       setPendingFilterTab(true);
       setFetchTrigger(f => f + 1);
     }
@@ -113,9 +119,11 @@ const ProductBrowser: React.FC<ProductBrowserProps> = ({
   // Handle page changes (and also page 1 after first mount)
   useEffect(() => {
     const cacheKey = `page=${page}&limit=${limit}&search=${search.trim()}&type=${activeTab}`;
-    // Use cache if available
-    setShowSkeleton(true);
-    setProducts([]);
+    // Only show skeleton and clear products if not SSR initial load
+    if (!(isFirstLoad.current && page === 1 && search === "" && activeTab === "all")) {
+      setShowSkeleton(true);
+      setProducts([]);
+    }
     if (productPages[cacheKey]) {
       setProducts(productPages[cacheKey]);
       setFetching(false);
