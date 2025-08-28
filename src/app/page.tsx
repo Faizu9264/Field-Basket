@@ -17,9 +17,7 @@ export default async function Home() {
     .find(query)
     .skip((page - 1) * limit)
     .limit(limit)
-    .toArray();
-    console.log(products);
-    
+    .toArray();    
   type MongoProduct = WithId<{
     id?: string;
     name: string;

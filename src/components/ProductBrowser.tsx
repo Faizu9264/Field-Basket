@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ProductGrid from "../components/ProductGrid";
 import { Product } from "../store/cartStore";
 import { useProductPaginationStore } from "../store/productPaginationStore";
@@ -10,6 +10,8 @@ interface ProductBrowserProps {
   initialLimit: number;
   activeTab: 'fruit' | 'vegetable' | 'all';
   search: string;
+  page: number;
+  setPage: (page: number) => void;
 }
 
 const ProductBrowser: React.FC<ProductBrowserProps> = ({
@@ -17,44 +19,19 @@ const ProductBrowser: React.FC<ProductBrowserProps> = ({
   initialTotal,
   initialLimit,
   activeTab,
-  search
+  search,
+  page,
+  setPage
 }) => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [total, setTotal] = useState(initialTotal);
-  const [page, setPage] = useState(1);
   const [limit] = useState(initialLimit);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { productPages, setProductPage } = useProductPaginationStore();
+  const { productPages, setProductPage, clearProductPages } = useProductPaginationStore();
+  const isFirstLoad = useRef(true);
 
-  // Debounce search
-  useEffect(() => {
-    const handler = setTimeout(() => {
-        const cacheKey = `page=1&limit=${limit}&search=${search.trim()}`;
-        if (productPages[cacheKey]) {
-          setProducts(productPages[cacheKey]);
-          setFetching(false);
-          return;
-        }
-        fetchProducts(1, search, cacheKey);
-      setPage(1);
-    }, 400);
-    return () => clearTimeout(handler);
-    // eslint-disable-next-line
-  }, [search]);
-
-  useEffect(() => {
-    if (page === 1 && search === "") return; // already loaded
-    const cacheKey = `page=${page}&limit=${limit}&search=${search.trim()}`;
-    if (productPages[cacheKey]) {
-      setProducts(productPages[cacheKey]);
-      setFetching(false);
-      return;
-    }
-    fetchProducts(page, search, cacheKey);
-    // eslint-disable-next-line
-  }, [page]);
-
+  // Helper to fetch and cache products
   const fetchProducts = async (pageNum: number, searchTerm: string, cacheKey: string) => {
     setFetching(true);
     setError(null);
@@ -71,25 +48,62 @@ const ProductBrowser: React.FC<ProductBrowserProps> = ({
       setProductPage(cacheKey, data.products || []);
       setTotal(data.total || 0);
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message || "Failed to load products");
-      } else {
-        setError("Failed to load products");
-      }
+      setError(err instanceof Error ? err.message : "Failed to load products");
     } finally {
       setFetching(false);
     }
   };
 
+  // On first mount, use SSR data for page 1 only, and always set cache for page 1
+  useEffect(() => {
+    if (page === 1 && search === "") {
+      setProducts(initialProducts);
+      setTotal(initialTotal);
+      setProductPage(`page=1&limit=${limit}&search=`, initialProducts);
+      setFetching(false);
+    }
+    isFirstLoad.current = false;
+    // eslint-disable-next-line
+  }, []);
+
+  // Handle search: reset to page 1, clear cache, fetch fresh
+  useEffect(() => {
+    if (search !== "") {
+      setPage(1);
+      clearProductPages();
+      setFetching(true);
+      const handler = setTimeout(() => {
+        const cacheKey = `page=1&limit=${limit}&search=${search.trim()}`;
+        fetchProducts(1, search, cacheKey);
+      }, 400);
+      return () => clearTimeout(handler);
+    }
+    // eslint-disable-next-line
+  }, [search]);
+
+  // Handle page changes (and also page 1 after first mount)
+  useEffect(() => {
+    const cacheKey = `page=${page}&limit=${limit}&search=${search.trim()}`;
+    // Use cache if available
+    if (productPages[cacheKey]) {
+      setProducts(productPages[cacheKey]);
+      setFetching(false);
+      return;
+    }
+    // If SSR initial page, skip (handled by first mount effect)
+    if (isFirstLoad.current && page === 1 && search === "") return;
+    // Otherwise fetch
+    fetchProducts(page, search, cacheKey);
+    // eslint-disable-next-line
+  }, [page, search, initialProducts, initialTotal]);
+
   const fruits = products.filter(p => p.type?.toLowerCase() === "fruit");
   const vegetables = products.filter(p => p.type?.toLowerCase() === "vegetable");
   const totalPages = Math.ceil(total / limit);
-  // Only show pagination if not searching, or if search results are more than one page
-  const showPagination = (!search && totalPages > 1) || (search && total > limit);
+  const showPagination = totalPages > 1;
 
   return (
     <div>
-      {/* Search and filter UI removed; handled by Header */}
       {error && <div className="text-red-600 font-bold mb-4">{error}</div>}
       <ProductGrid
         fruits={activeTab === "vegetable" ? [] : fruits}
@@ -103,7 +117,7 @@ const ProductBrowser: React.FC<ProductBrowserProps> = ({
         <div className="flex gap-2 mt-6 justify-center">
           <button
             className="px-3 py-1 rounded bg-green-200 text-green-900 font-semibold disabled:opacity-50"
-            onClick={() => setPage(p => Math.max(1, p - 1))}
+            onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1 || fetching}
           >
             Previous
@@ -111,7 +125,7 @@ const ProductBrowser: React.FC<ProductBrowserProps> = ({
           <span className="px-2 py-1 text-green-800 font-bold">Page {page} of {totalPages}</span>
           <button
             className="px-3 py-1 rounded bg-green-200 text-green-900 font-semibold disabled:opacity-50"
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages || fetching}
           >
             Next
